@@ -1,16 +1,17 @@
+# Build context: repo root (Coolify default).
+# In Coolify: Dockerfile Location = /backend/Dockerfile, Base Directory = /
+
 # Build stage
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install deps (include dev for build)
-COPY package.json package-lock.json ./
-COPY prisma ./prisma
+COPY backend/package.json backend/package-lock.json ./
+COPY backend/prisma ./prisma
 RUN npm ci
 
-# Copy source + build
-COPY tsconfig*.json nest-cli.json ./
-COPY src ./src
+COPY backend/tsconfig.json backend/nest-cli.json ./
+COPY backend/src ./src
 RUN npx prisma generate && npm run build
 
 # Production stage
@@ -18,12 +19,10 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install prod deps only
-COPY package.json package-lock.json ./
-COPY prisma ./prisma
+COPY backend/package.json backend/package-lock.json ./
+COPY backend/prisma ./prisma
 RUN npm ci --omit=dev && npx prisma generate
 
-# Copy compiled output
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000

@@ -1,27 +1,27 @@
+# Build context: repo root (Coolify default).
+# In Coolify: Dockerfile Location = /frontend/Dockerfile, Base Directory = /
+
 # Build stage
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install deps
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
-# Build with Vite env vars (must be set at build time — Vite inlines them)
 ARG VITE_API_URL
 ARG VITE_INTERNAL_API_KEY
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_INTERNAL_API_KEY=$VITE_INTERNAL_API_KEY
 
-COPY . .
+COPY frontend/ ./
 RUN npm run build
 
-# Production stage — serve with nginx
+# Production stage — nginx
 FROM nginx:alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# SPA routing + long-cache for hashed assets
 RUN echo 'server { \
     listen 80; \
     root /usr/share/nginx/html; \
