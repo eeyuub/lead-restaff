@@ -11,7 +11,8 @@ WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
 COPY backend/prisma ./prisma
-RUN npm ci
+# Force dev deps even if NODE_ENV=production is set in the build env (Coolify injects it).
+RUN NODE_ENV=development npm ci --include=dev
 
 COPY backend/tsconfig.json backend/nest-cli.json ./
 COPY backend/src ./src
