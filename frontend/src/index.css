@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-feature-settings: 'ss01', 'ss02', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(217, 106, 60, 0.04), transparent 50%),
+      radial-gradient(circle at 90% 100%, rgba(126, 196, 138, 0.03), transparent 50%);
+  }
+  /* Subtle paper grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium border transition-colors;
+  }
+  .btn-primary {
+    @apply bg-flame text-ink-50 border-flame hover:bg-flame-dark hover:border-flame-dark;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-ink-200 border-ink-700 hover:bg-ink-800 hover:text-ink-50;
+  }
+  .btn-danger {
+    @apply bg-transparent text-red-400 border-red-900 hover:bg-red-950;
+  }
+  .card {
+    @apply bg-ink-900 border border-ink-800;
+  }
+  .input,
+  .select,
+  .textarea {
+    @apply bg-ink-900 border border-ink-700 px-3 py-1.5 text-sm text-ink-100
+           placeholder-ink-500 focus:outline-none focus:border-flame
+           transition-colors;
+  }
+  .textarea {
+    @apply font-mono text-xs leading-relaxed;
+  }
+  .badge {
+    @apply inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider border;
+  }
+  .badge-a {
+    @apply bg-priority-a/10 text-priority-a border-priority-a/30;
+  }
+  .badge-b {
+    @apply bg-priority-b/10 text-priority-b border-priority-b/30;
+  }
+  .badge-c {
+    @apply bg-priority-c/10 text-priority-c border-priority-c/30;
+  }
+  .badge-d {
+    @apply bg-priority-d/10 text-priority-d border-priority-d/30;
+  }
+  .stat {
+    @apply font-mono;
+  }
+}

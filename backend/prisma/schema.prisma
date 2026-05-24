@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ LEADS ============
+
+enum LeadPriority {
+  A
+  B
+  C
+  D
+}
+
+enum LeadCategoryGroup {
+  HOTEL
+  RESTAURANT
+  CAFE
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  RESPONDED
+  INTERESTED
+  MEETING_SCHEDULED
+  NEGOTIATING
+  CONVERTED
+  REJECTED
+  DO_NOT_CONTACT
+}
+
+enum RejectionReason {
+  PRICE
+  NO_NEED
+  WRONG_CONTACT
+  NO_RESPONSE
+  COMPETITOR
+  OTHER
+}
+
+model Lead {
+  id               String             @id @default(cuid())
+  placeId          String             @unique
+  name             String
+  categoryGroup    LeadCategoryGroup
+  subCategory      String?
+  city             String
+  neighborhood     String?
+  address          String?
+  phone            String?
+  emailPrimary     String?
+  emails           String[]
+  website          String?
+  instagram        String?
+  facebook         String?
+  rating           Float?
+  reviewsCount     Int?
+  lat              Float?
+  lng              Float?
+  qualityScore     Int                @default(0)
+  priority         LeadPriority
+  status           LeadStatus         @default(NEW)
+  rejectionReason  RejectionReason?
+  rejectionNote    String?            @db.Text
+  lastOutboundAt   DateTime?
+  lastInboundAt    DateTime?
+  notes            String?            @db.Text
+  rawData          Json?
+  scrapeJobId      String?
+  scrapeJob        ScrapeJob?         @relation(fields: [scrapeJobId], references: [id], onDelete: SetNull)
+  outreachMessages OutreachMessage[]
+  statusChanges    LeadStatusChange[]
+  jobItems         OutreachJobItem[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([city])
+  @@index([categoryGroup])
+  @@index([status])
+  @@index([priority])
+}
+
+model LeadStatusChange {
+  id         String           @id @default(cuid())
+  leadId     String
+  lead       Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus LeadStatus?
+  toStatus   LeadStatus
+  reason     RejectionReason?
+  note       String?          @db.Text
+  createdAt  DateTime         @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+// ============ SCRAPE JOBS ============
+
+enum ScrapeJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  ABORTED
+}
+
+model ScrapeJob {
+  id              String          @id @default(cuid())
+  apifyRunId      String?         @unique
+  apifyDatasetId  String?
+  status          ScrapeJobStatus @default(PENDING)
+  cities          String[]
+  categories      String[]
+  zonesUsed       String[]
+  perZoneLimit    Int             @default(10)
+  totalScraped    Int?
+  totalIngested   Int?
+  totalDuplicates Int?
+  errorMessage    String?         @db.Text
+  options         Json?
+  leads           Lead[]
+  createdAt       DateTime        @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ScrapeTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============ OUTREACH ============
+
+enum OutreachChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum OutreachStatus {
+  DRAFT
+  SENT
+  FAILED
+  RESPONDED
+}
+
+enum MessageGeneratedBy {
+  TEMPLATE
+  AI
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+model OutreachMessage {
+  id                 String              @id @default(cuid())
+  leadId             String
+  lead               Lead                @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  direction          MessageDirection    @default(OUTBOUND)
+  channel            OutreachChannel     @default(WHATSAPP)
+  status             OutreachStatus      @default(DRAFT)
+  generatedBy        MessageGeneratedBy?
+  subject            String?
+  promptUsed         String?             @db.Text
+  body               String              @db.Text
+  evolutionMessageId String?
+  evolutionResponse  Json?
+  sentAt             DateTime?
+  respondedAt        DateTime?
+  errorMessage       String?             @db.Text
+  replyToId          String?
+  replyTo            OutreachMessage?    @relation("Replies", fields: [replyToId], references: [id])
+  replies            OutreachMessage[]   @relation("Replies")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([leadId, createdAt])
+  @@index([status])
+  @@index([direction])
+}
+
+// ============ BULK OUTREACH JOBS ============
+
+enum OutreachJobStatus {
+  QUEUED
+  RUNNING
+  PAUSED
+  DONE
+  CANCELLED
+}
+
+enum OutreachJobItemStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model OutreachJob {
+  id           String            @id @default(cuid())
+  name         String?
+  channel      OutreachChannel   @default(WHATSAPP)
+  status       OutreachJobStatus @default(QUEUED)
+  body         String            @db.Text
+  throttleMs   Int               @default(8000)
+  total        Int               @default(0)
+  sent         Int               @default(0)
+  failed       Int               @default(0)
+  skipped      Int               @default(0)
+  errorSummary String?           @db.Text
+  items        OutreachJobItem[]
+  createdAt    DateTime          @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  lastTickAt   DateTime?
+
+  @@index([status])
+}
+
+model OutreachJobItem {
+  id                String                @id @default(cuid())
+  jobId             String
+  job               OutreachJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  leadId            String
+  lead              Lead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  body              String                @db.Text
+  status            OutreachJobItemStatus @default(PENDING)
+  outreachMessageId String?
+  errorMessage      String?               @db.Text
+  attemptedAt       DateTime?
+  createdAt         DateTime              @default(now())
+
+  @@index([jobId, status])
+}
