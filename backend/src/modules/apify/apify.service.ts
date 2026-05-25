@@ -49,11 +49,13 @@ export class ApifyService {
 
     let url = `/acts/${this.actorId}/runs`;
     if (isPublic) {
-      const webhookUrl = `${this.publicUrl}/apify/webhook?secret=${this.webhookSecret}&scrapeJobId=${scrapeJobId}`;
+      // Secret travels in a custom header (not the query) so it doesn't end up in access logs.
+      const webhookUrl = `${this.publicUrl}/apify/webhook?scrapeJobId=${scrapeJobId}`;
       const webhooks = [
         {
           eventTypes: ['ACTOR.RUN.SUCCEEDED', 'ACTOR.RUN.FAILED', 'ACTOR.RUN.ABORTED', 'ACTOR.RUN.TIMED_OUT'],
           requestUrl: webhookUrl,
+          headersTemplate: JSON.stringify({ 'x-apify-secret': this.webhookSecret }),
         },
       ];
       const webhooksParam = Buffer.from(JSON.stringify(webhooks)).toString('base64');

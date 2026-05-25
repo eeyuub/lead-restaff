@@ -8,12 +8,23 @@ import LeadDetail from './pages/LeadDetail';
 import OutreachJobs from './pages/OutreachJobs';
 import OutreachJobDetail from './pages/OutreachJobDetail';
 import Login from './pages/Login';
-import { auth } from './lib/api';
+import { api, auth } from './lib/api';
 
 export default function App() {
   const [authed, setAuthed] = useState(auth.isAuthed());
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Boot-time verification — if a stored key was revoked server-side
+  // (e.g. INTERNAL_API_KEY rotated), kick the user back to /login.
+  useEffect(() => {
+    if (!auth.isAuthed()) return;
+    api
+      .post('/auth/verify')
+      .catch(() => {
+        /* 401 already handled by api.ts → emits restaff:unauthenticated */
+      });
+  }, []);
 
   // Listen for global auth events.
   useEffect(() => {

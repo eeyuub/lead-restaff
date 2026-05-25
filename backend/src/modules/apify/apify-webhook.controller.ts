@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Headers,
   Logger,
   Post,
   Query,
@@ -26,16 +27,19 @@ export class ApifyWebhookController {
 
   /**
    * Apify calls this URL when a run completes (success or failure).
-   * URL is registered when starting the run, includes secret & scrapeJobId in query.
+   * Secret is sent in `x-apify-secret` header (avoids leaking in access logs).
+   * Query-param fallback kept for backward-compat with already-registered runs.
    */
   @Public()
   @Post('webhook')
   async onWebhook(
-    @Query('secret') secret: string,
+    @Headers('x-apify-secret') secretHeader: string | undefined,
+    @Query('secret') secretQuery: string | undefined,
     @Query('scrapeJobId') scrapeJobId: string,
     @Body() body: any,
   ) {
-    if (secret !== this.config.get<string>('APIFY_WEBHOOK_SECRET')) {
+    const provided = secretHeader || secretQuery;
+    if (provided !== this.config.get<string>('APIFY_WEBHOOK_SECRET')) {
       this.logger.warn('Apify webhook rejected: bad secret');
       throw new BadRequestException('Invalid secret');
     }
