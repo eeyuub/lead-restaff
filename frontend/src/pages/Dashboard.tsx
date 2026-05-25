@@ -1,13 +1,30 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Database, Radar, TrendingUp } from 'lucide-react';
+import { ArrowRight, Database, Radar, RefreshCw, TrendingUp, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../lib/api';
 import type { LeadStats, ScrapeJob } from '../lib/types';
 import StatusDot from '../components/StatusDot';
 
 export default function Dashboard() {
+  const qc = useQueryClient();
   const stats = useQuery({ queryKey: ['stats'], queryFn: () => api.get<LeadStats>('/leads/stats') });
   const jobs = useQuery({ queryKey: ['jobs'], queryFn: () => api.get<ScrapeJob[]>('/scrape-jobs') });
+
+  const sync = useMutation({
+    mutationFn: (jobId: string) =>
+      api.post<ScrapeJob & { filteredByMinReviews?: number }>(`/scrape-jobs/${jobId}/ingest`),
+    onSuccess: (j) => {
+      toast.success(
+        `Synced · +${j.totalIngested ?? 0} new · ${j.totalDuplicates ?? 0} dupes${
+          j.filteredByMinReviews ? ` · ${j.filteredByMinReviews} filtered` : ''
+        }`,
+      );
+      qc.invalidateQueries({ queryKey: ['jobs'] });
+      qc.invalidateQueries({ queryKey: ['stats'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   const total = stats.data?.total ?? 0;
   const aCount = stats.data?.byPriority?.find((p) => p.priority === 'A')?._count ?? 0;
@@ -79,14 +96,31 @@ export default function Dashboard() {
                   {new Date(j.createdAt).toLocaleString()} · {j.zonesUsed.length} queries
                 </div>
               </div>
-              <div className="text-right font-mono text-xs">
-                {j.totalIngested !== null ? (
-                  <>
-                    <div className="text-priority-a">+{j.totalIngested} new</div>
-                    <div className="text-ink-500">{j.totalDuplicates ?? 0} dupes</div>
-                  </>
-                ) : (
-                  <div className="text-ink-500">{j.status.toLowerCase()}</div>
+              <div className="flex items-center gap-3">
+                <div className="text-right font-mono text-xs">
+                  {j.totalIngested !== null ? (
+                    <>
+                      <div className="text-priority-a">+{j.totalIngested} new</div>
+                      <div className="text-ink-500">{j.totalDuplicates ?? 0} dupes</div>
+                    </>
+                  ) : (
+                    <div className="text-ink-500">{j.status.toLowerCase()}</div>
+                  )}
+                </div>
+                {(j.status === 'RUNNING' || j.status === 'PENDING') && j.apifyRunId && (
+                  <button
+                    onClick={() => sync.mutate(j.id)}
+                    disabled={sync.isPending && sync.variables === j.id}
+                    title="Pull results from Apify (skip waiting for the webhook)"
+                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono uppercase tracking-wider border border-ink-700 text-ink-300 hover:border-flame hover:text-flame transition-colors disabled:opacity-40"
+                  >
+                    {sync.isPending && sync.variables === j.id ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={11} />
+                    )}
+                    Sync
+                  </button>
                 )}
               </div>
             </div>
