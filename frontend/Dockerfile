@@ -24,12 +24,16 @@ RUN echo 'server { \
     listen 80; \
     root /usr/share/nginx/html; \
     index index.html; \
+    # Tell every crawler to stay out — defence-in-depth alongside <meta robots> and /robots.txt. \
+    add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always; \
     location /assets/ { \
         expires 1y; \
         add_header Cache-Control "public, immutable"; \
+        add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always; \
     } \
     location / { \
         add_header Cache-Control "no-cache"; \
+        add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always; \
         try_files $uri $uri/ /index.html; \
     } \
 }' > /etc/nginx/conf.d/default.conf
