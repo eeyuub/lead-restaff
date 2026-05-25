@@ -15,16 +15,23 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Listen for global "we just got a 401 / no key" events.
+  // Listen for global auth events.
   useEffect(() => {
-    function handler() {
+    function onUnauth() {
       setAuthed(false);
       if (location.pathname !== '/login') {
         navigate('/login', { replace: true });
       }
     }
-    window.addEventListener('restaff:unauthenticated', handler);
-    return () => window.removeEventListener('restaff:unauthenticated', handler);
+    function onAuth() {
+      setAuthed(true);
+    }
+    window.addEventListener('restaff:unauthenticated', onUnauth);
+    window.addEventListener('restaff:authenticated', onAuth);
+    return () => {
+      window.removeEventListener('restaff:unauthenticated', onUnauth);
+      window.removeEventListener('restaff:authenticated', onAuth);
+    };
   }, [navigate, location.pathname]);
 
   function logout() {

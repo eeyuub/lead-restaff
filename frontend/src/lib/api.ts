@@ -87,6 +87,7 @@ export async function login(key: string): Promise<boolean> {
       anonymous: true,
     });
     auth.set(key);
+    window.dispatchEvent(new Event('restaff:authenticated'));
     return true;
   } catch {
     return false;
