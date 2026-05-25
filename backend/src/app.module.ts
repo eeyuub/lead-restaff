@@ -10,6 +10,7 @@ import { OutreachJobsModule } from './modules/outreach-jobs/outreach-jobs.module
 import { ApifyModule } from './modules/apify/apify.module';
 import { WiiSenderModule } from './modules/wiisender/wiisender.module';
 import { AiModule } from './modules/ai/ai.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { ApiKeyGuard } from './common/guards/api-key.guard';
 
 @Module({
@@ -24,6 +25,7 @@ import { ApiKeyGuard } from './common/guards/api-key.guard';
     ScrapeJobsModule,
     OutreachModule,
     OutreachJobsModule,
+    AuthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ApiKeyGuard }],
 })

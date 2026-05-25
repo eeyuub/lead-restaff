@@ -10,9 +10,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 ARG VITE_API_URL
-ARG VITE_INTERNAL_API_KEY
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_INTERNAL_API_KEY=$VITE_INTERNAL_API_KEY
 
 COPY frontend/ ./
 RUN npm run build
